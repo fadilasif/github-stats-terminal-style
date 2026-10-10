@@ -1,0 +1,54 @@
+name: Terminal Stats Card
+
+# Generates the terminal-style stats SVG from THIS fork's (patched) code
+# and commits it, so the profile README can hotlink a static file.
+# Shows Commits instead of Gists (see src/commands/NeofetchCommand.ts).
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - "src/**"
+      - "action.yml"
+      - ".github/workflows/terminal-stats.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install + build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Generate terminal stats SVG
+        uses: ./
+        with:
+          username: fadilasif
+          theme: tokyonight
+          headerStyle: mac
+          commands: whoami,neofetch,uptime,exit
+          outputPath: github_stats.svg
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add github_stats.svg
+          git diff --staged --quiet || git commit -m "chore: update terminal stats card [skip ci]"
+          git push
